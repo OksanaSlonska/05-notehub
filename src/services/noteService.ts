@@ -19,12 +19,16 @@ export interface CreateNoteResponse {
   note: Note;
 }
 
+export interface DeleteNoteResponse {
+  note: Note;
+}
+
 export const fetchNotes = async (
   page: number = 1,
   perPage: number = 12,
   search: string = ""
 ): Promise<FetchNotesResponse> => {
-  const response = await axios.get(BASE_URL, {
+  const response = await axios.get<FetchNotesResponse>(BASE_URL, {
     headers: { Authorization: `Bearer ${TOKEN}` },
     params: { page, perPage, search },
   });
@@ -42,11 +46,11 @@ export const createNote = async (newNote: CreateNoteDTO): Promise<Note> => {
     },
   });
 
-  return response.data.note; // возвращаем созданную заметку
+  return response.data.note;
 };
 
 export const deleteNote = async (id: string): Promise<void> => {
-  await axios.delete(`${BASE_URL}/${id}`, {
+  await axios.delete<DeleteNoteResponse>(`${BASE_URL}/${id}`, {
     headers: {
       Authorization: `Bearer ${TOKEN}`,
     },

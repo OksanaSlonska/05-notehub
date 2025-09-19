@@ -8,9 +8,6 @@ import Pagination from "../Pagination/Pagination";
 import SearchBox from "../SearchBox/SearchBox";
 import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createNote } from "../../services/noteService";
-import { deleteNote } from "../../services/noteService";
 import Loader from "../Loader/Loader";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import css from "./App.module.css";
@@ -19,37 +16,16 @@ const App = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 500);
-  const perPage = 12;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const perPage = 12;
 
-  const queryClient = useQueryClient();
-
-  const createNoteMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-    },
-  });
-
-  const deleteNoteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const handleCreateNote = (note: {
-    title: string;
-    content: string;
-    tag: string;
-  }) => {
-    createNoteMutation.mutate(note);
-  };
-
-  const { data, isLoading, error } = useQuery<FetchNotesResponse, Error>({
+  const { data, isLoading, error, refetch } = useQuery<
+    FetchNotesResponse,
+    Error
+  >({
     queryKey: ["notes", page, debouncedSearch],
     queryFn: () => fetchNotes(page, perPage, debouncedSearch),
+    placeholderData: (prev) => prev,
   });
 
   const notes = data?.notes || [];
@@ -65,11 +41,15 @@ const App = () => {
             setPage(1);
           }}
         />
-        <Pagination
-          pageCount={totalPages}
-          currentPage={page}
-          onPageChange={(selectedPage) => setPage(selectedPage)}
-        />
+
+        {totalPages > 1 && (
+          <Pagination
+            pageCount={totalPages}
+            currentPage={page}
+            onPageChange={(selectedPage) => setPage(selectedPage)}
+          />
+        )}
+
         <button className={css.button} onClick={() => setIsModalOpen(true)}>
           Create note +
         </button>
@@ -78,28 +58,19 @@ const App = () => {
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <NoteForm
-            onSubmit={handleCreateNote}
             onCancel={() => setIsModalOpen(false)}
+            closeModal={() => setIsModalOpen(false)}
           />
         </Modal>
       )}
+
       {isLoading && <Loader />}
 
       {error && (
-        <ErrorMessage
-          message={error.message}
-          onRetry={() =>
-            queryClient.invalidateQueries({
-              queryKey: ["notes", page, debouncedSearch],
-            })
-          }
-        />
+        <ErrorMessage message={error.message} onRetry={() => refetch()} />
       )}
 
-      <NoteList
-        notes={notes}
-        onDelete={(id) => deleteNoteMutation.mutate(id)}
-      />
+      <NoteList notes={notes} />
     </div>
   );
 };
