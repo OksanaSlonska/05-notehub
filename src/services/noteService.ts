@@ -5,7 +5,7 @@ const TOKEN = import.meta.env.VITE_NOTEHUB_TOKEN;
 
 const BASE_URL = "https://notehub-public.goit.study/api/notes";
 
-interface FetchNotesResponse {
+export interface FetchNotesResponse {
   notes: Note[];
   totalPages: number;
 }
